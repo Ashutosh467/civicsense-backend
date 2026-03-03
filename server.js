@@ -31,25 +31,25 @@ const app = express();
 const server = http.createServer(app);
 
 // ================================
-// PRODUCTION CORS CONFIG
+// SMART PRODUCTION CORS
 // ================================
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://civic-sense-gamma.vercel.app",
-];
-
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow non-browser requests (Postman, curl)
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, true); // curl, Postman
 
-      if (allowedOrigins.includes(origin)) {
+      // Allow localhost
+      if (origin.includes("localhost")) {
         return callback(null, true);
-      } else {
-        console.log("❌ Blocked by CORS:", origin);
-        return callback(new Error("Not allowed by CORS"));
       }
+
+      // Allow ALL Vercel deployments (preview + production)
+      if (origin.endsWith(".vercel.app")) {
+        return callback(null, true);
+      }
+
+      console.log("❌ Blocked by CORS:", origin);
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   }),
@@ -58,11 +58,18 @@ app.use(
 app.use(express.json());
 
 // ================================
-// SOCKET.IO SETUP WITH CORS
+// SOCKET.IO CORS
 // ================================
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      if (origin.includes("localhost")) return callback(null, true);
+      if (origin.endsWith(".vercel.app")) return callback(null, true);
+
+      return callback("Not allowed by CORS", false);
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -90,7 +97,7 @@ app.use("/api/complaint", complaintRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 // ================================
-// SOCKET CONNECTION LOGGING
+// SOCKET LOGGING
 // ================================
 io.on("connection", (socket) => {
   console.log("✅ Dashboard Connected:", socket.id);
@@ -111,7 +118,7 @@ server.listen(PORT, () => {
 🌐 Port: ${PORT}
 🔥 Database: Firebase Firestore
 📡 Realtime Enabled
-🔒 CORS Secured for Production
-🚀 Ready for Frontend Connection
+🔒 Smart CORS Enabled (Vercel + Localhost)
+🚀 Ready for Frontend
 `);
 });
