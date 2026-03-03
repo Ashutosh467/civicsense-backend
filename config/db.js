@@ -1,11 +1,28 @@
 import admin from "firebase-admin";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const firebaseKey = process.env.FIREBASE_KEY
-  ? JSON.parse(process.env.FIREBASE_KEY)
-  : null;
+// Fix __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-if (!firebaseKey) {
-  throw new Error("FIREBASE_KEY environment variable not found");
+let firebaseKey;
+
+if (process.env.FIREBASE_KEY) {
+  // Production (Render)
+  firebaseKey = JSON.parse(process.env.FIREBASE_KEY);
+  console.log("🔥 Using FIREBASE_KEY from environment");
+} else {
+  // Local development
+  const keyPath = path.join(__dirname, "firebaseKey.json");
+
+  if (!fs.existsSync(keyPath)) {
+    throw new Error("firebaseKey.json not found in config folder");
+  }
+
+  firebaseKey = JSON.parse(fs.readFileSync(keyPath, "utf8"));
+  console.log("🔥 Using firebaseKey.json for local development");
 }
 
 admin.initializeApp({
@@ -14,6 +31,6 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-console.log("✅ Firebase Firestore Connected (Production Mode)");
+console.log("✅ Firebase Firestore Connected");
 
 export default db;

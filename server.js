@@ -2,13 +2,11 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// ================================
-// FIX __dirname (ES Modules)
-// ================================
+// Fix __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
+// Load env variables
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 import express from "express";
@@ -16,7 +14,7 @@ import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 
-// Initialize Firebase (Firestore listener runs automatically)
+// Firebase init
 import "./config/db.js";
 
 import complaintRoutes from "./routes/complaint.routes.js";
@@ -30,25 +28,20 @@ const app = express();
 const server = http.createServer(app);
 
 // ================================
-// PRODUCTION CORS CONFIG
+// CORS CONFIGURATION (PRODUCTION READY)
 // ================================
-
 const allowedOrigins = [
-  "http://localhost:5173", // local dev
-  "http://localhost:3000", // alternate local
-  "https://civic-sense-gamma.vercel.app", // 🔥 your real frontend
+  "http://localhost:5173",
+  "https://civic-sense-gamma.vercel.app",
 ];
 
-// Express CORS
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow curl/postman
-
-      if (allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("CORS Not Allowed"));
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
@@ -58,12 +51,13 @@ app.use(
 app.use(express.json());
 
 // ================================
-// SOCKET.IO SETUP (WITH CORS)
+// SOCKET.IO SETUP
 // ================================
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PATCH"],
+    methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -71,10 +65,10 @@ const io = new Server(server, {
 setIO(io);
 
 // ================================
-// BASIC ROUTES
+// ROUTES
 // ================================
 app.get("/", (req, res) => {
-  res.send("🚀 CivicSense Backend Running (Production Mode)");
+  res.send("🚀 CivicSense Backend Running (Production)");
 });
 
 app.get("/health", (req, res) => {
@@ -86,9 +80,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ================================
-// API ROUTES
-// ================================
 app.use("/api/complaint", complaintRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
@@ -106,7 +97,7 @@ io.on("connection", (socket) => {
 // ================================
 // START SERVER
 // ================================
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 10000;
 
 server.listen(PORT, () => {
   console.log(`
