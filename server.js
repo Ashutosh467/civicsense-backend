@@ -41,12 +41,14 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow non-browser tools (Postman, curl)
+      // Allow non-browser requests (Postman, curl)
+      if (!origin) return callback(null, true);
 
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        console.log("❌ Blocked by CORS:", origin);
+        return callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
@@ -56,12 +58,13 @@ app.use(
 app.use(express.json());
 
 // ================================
-// SOCKET.IO WITH CORS
+// SOCKET.IO SETUP WITH CORS
 // ================================
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -87,7 +90,7 @@ app.use("/api/complaint", complaintRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 // ================================
-// SOCKET CONNECTION LOG
+// SOCKET CONNECTION LOGGING
 // ================================
 io.on("connection", (socket) => {
   console.log("✅ Dashboard Connected:", socket.id);
