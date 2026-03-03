@@ -2,19 +2,22 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Fix __dirname for ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load env variables
-dotenv.config({ path: path.join(__dirname, ".env") });
-
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 
-// Firebase init
+// ================================
+// FIX __dirname (ES Modules)
+// ================================
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, ".env") });
+
+// ================================
+// FIREBASE INIT
+// ================================
 import "./config/db.js";
 
 import complaintRoutes from "./routes/complaint.routes.js";
@@ -28,7 +31,7 @@ const app = express();
 const server = http.createServer(app);
 
 // ================================
-// CORS CONFIGURATION (PRODUCTION READY)
+// PRODUCTION CORS CONFIG
 // ================================
 const allowedOrigins = [
   "http://localhost:5173",
@@ -38,7 +41,9 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) return callback(null, true); // allow non-browser tools (Postman, curl)
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
@@ -51,17 +56,15 @@ app.use(
 app.use(express.json());
 
 // ================================
-// SOCKET.IO SETUP
+// SOCKET.IO WITH CORS
 // ================================
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     methods: ["GET", "POST"],
-    credentials: true,
   },
 });
 
-// Make socket globally accessible
 setIO(io);
 
 // ================================
@@ -84,7 +87,7 @@ app.use("/api/complaint", complaintRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 // ================================
-// SOCKET CONNECTION LOGGING
+// SOCKET CONNECTION LOG
 // ================================
 io.on("connection", (socket) => {
   console.log("✅ Dashboard Connected:", socket.id);
