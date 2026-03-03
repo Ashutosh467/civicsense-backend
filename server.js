@@ -36,15 +36,15 @@ const server = http.createServer(app);
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // curl, Postman
+      if (!origin) return callback(null, true); // Postman / curl
 
-      // Allow localhost
+      // Allow localhost (dev)
       if (origin.includes("localhost")) {
         return callback(null, true);
       }
 
       // Allow ALL Vercel deployments (preview + production)
-      if (origin.endsWith(".vercel.app")) {
+      if (origin.includes(".vercel.app")) {
         return callback(null, true);
       }
 
@@ -58,7 +58,7 @@ app.use(
 app.use(express.json());
 
 // ================================
-// SOCKET.IO CORS
+// SOCKET.IO WITH MATCHING CORS
 // ================================
 const io = new Server(server, {
   cors: {
@@ -66,8 +66,9 @@ const io = new Server(server, {
       if (!origin) return callback(null, true);
 
       if (origin.includes("localhost")) return callback(null, true);
-      if (origin.endsWith(".vercel.app")) return callback(null, true);
+      if (origin.includes(".vercel.app")) return callback(null, true);
 
+      console.log("❌ Socket blocked by CORS:", origin);
       return callback("Not allowed by CORS", false);
     },
     methods: ["GET", "POST"],
